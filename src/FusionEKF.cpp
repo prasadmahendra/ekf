@@ -220,10 +220,10 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       double phi      = radar[1];
       double rho_dot  = radar[2];
       
-      double x        = cos(phi) * rho;       // cos(phi) = adjacent/hypotenuse = x / rho
-      double y        = sin(phi) * rho;       // sin(phi) = y/hypotenuse = y / rho
-      double vx       = cos(phi) * rho_dot;   // cos(phi) = adjacent/hypotenuse = x / rho_dot
-      double vy       = sin(phi) * rho_dot;   // cos(phi) = adjacent/hypotenuse = x / rho_dot
+      double x        = cos(phi) * rho;       // cos(phi) = adj/hyp = x / rho
+      double y        = sin(phi) * rho;       // sin(phi) = opp/hyp = y / rho
+      double vx       = cos(phi) * rho_dot;   // cos(phi) = adj/hyp = vx / rho_dot
+      double vy       = sin(phi) * rho_dot;   // sin(phi) = opp/hyp = vy / rho_dot
       
       ekf_.x_ << x, y, vx, vy;
     }

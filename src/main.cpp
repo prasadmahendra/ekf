@@ -50,14 +50,11 @@ void check_files(ifstream& in_file, string& in_name,
 }
 
 int main(int argc, char* argv[]) {
+  check_arguments(argc, argv);
 
-  //check_arguments(argc, argv);
-
-  //string in_file_name_ = "/Users/pmahendra/Projects/CarND/extended-karman-filter/extended-karman-filter/data/sample-laser-radar-measurement-data-1.txt"; //argv[1];
   string in_file_name_ = argv[1];
   ifstream in_file_(in_file_name_.c_str(), ifstream::in);
 
-  //string out_file_name_ = "/Users/pmahendra/Projects/CarND/extended-karman-filter/extended-karman-filter/output.txt"; //argv[2];
   string out_file_name_ = argv[2];
   ofstream out_file_(out_file_name_.c_str(), ofstream::out);
 
