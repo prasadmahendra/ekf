@@ -1,0 +1,11 @@
+# silly macOS
+.DS_Store
+
+# build files
+build/
+
+# xcode-build
+xcode-build/
+
+# editor config
+.vscode/
