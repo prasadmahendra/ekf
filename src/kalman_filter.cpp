@@ -80,8 +80,8 @@ void KalmanFilter::UpdateEKF(MeasurementPackage::SensorType sensorType, const Ve
     double vx = x_(2);    // velocity x
     double vy = x_(3);    // velocity y
     
-    double rho = sqrt(pow(px, 2) + pow(py, 2));                 // radian distance from origin
-    double phi = atan2(py, px);                                 // bearing; tan(ϕ) = opp/adj = phi; arctan(phi) = phi
+    double rho = sqrt(pow(px, 2) + pow(py, 2));                 // Radian distance from origin
+    double phi = px != 0 || py != 0 ? atan2(py, px) : 0;        // bearing; tan(ϕ) = opp/adj = phi; arctan(phi) = phi
     double phi_dot = rho > 0 ? (px*vx + py*vy) / rho : 0;       // Radial velocity
     
     z_pred = VectorXd(3);
@@ -94,9 +94,9 @@ void KalmanFilter::UpdateEKF(MeasurementPackage::SensorType sensorType, const Ve
   
   VectorXd y = z - z_pred;            // error calculation (y) given new object state (z)
   MatrixXd Ht = H.transpose();        // H matrix transposed
-  MatrixXd S = H * P_ * Ht + R;       // S matrix
-  MatrixXd Si = S.inverse();          // Inverse of the S matrix
   MatrixXd PHt = P_ * Ht;
+  MatrixXd S = H * PHt + R;           // S matrix
+  MatrixXd Si = S.inverse();          // Inverse of the S matrix
   MatrixXd K = PHt * Si;              // The Kalman gain
   
   // new estimate
