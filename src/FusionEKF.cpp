@@ -106,9 +106,9 @@ using std::vector;
  
       Linear approximation of H(radar) using multi-dimensional Taylor series expansion:
  
-      H​j =  ( px / √(pow(px,2) + pow(py, 2)),                                     py / (√(pow(px,2) + pow(py, 2)),                                      0,                                   0                            )
-            ( -(py / (pow(px,2) + pow(py, 2)),                                    px / (pow(px,2) + pow(py, 2)),                                        0,                                   0                            )
-            ( py * (vx * py - vy * px) / pow((pow(px,2) + pow(py, 2)), 3/2),      px * (vy * px - vx * py) / pow((pow(px,2) + pow(py, 2)), 3/2),        px / √(pow(px,2) + pow(py, 2)),      py / √(pow(px,2) + pow(py, 2))
+      H​j =  ( px / √(pow(px,2) + pow(py, 2)),                                         py / (√(pow(px,2) + pow(py, 2)),                                      0,                                   0                            )
+            ( -(py / (pow(px,2) + pow(py, 2)),                                        px / (pow(px,2) + pow(py, 2)),                                        0,                                   0                            )
+            ( py * (vx * py - vy * px) / pow((pow(px,2) + pow(py, 2)), 3.0/2.0),      px * (vy * px - vx * py) / pow((pow(px,2) + pow(py, 2)), 3.0/2.0),    px / √(pow(px,2) + pow(py, 2)),      py / √(pow(px,2) + pow(py, 2))
  ​​ 
 
     Measurement Covariance (noise) Matrix R (Lidar):
@@ -149,15 +149,15 @@ FusionEKF::FusionEKF() {
 
   // measurement covariance matrix - laser (sensor measurement uncertainty)
   R_laser_ = MatrixXd(2, 2);
-  R_laser_ << 0.0225, 0,
-              0, 0.0225;
+  R_laser_ << 0.0125, 0,
+              0, 0.0125;
 
   // measurement covariance matrix - radar (sensor measurement uncertainty)
   R_radar_ = MatrixXd(3, 3);
-  R_radar_ << 0.09, 0, 0,
-              0, 0.0009, 0,
-              0, 0, 0.09;
-
+  R_radar_ << 0.009, 0, 0,
+              0, 0.000001, 0,
+              0, 0, 0.009;
+  
   // measurement function (laser)
   H_laser_ = MatrixXd(2, 4);
   H_laser_ << 1, 0, 0, 0,
@@ -225,6 +225,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       double vx       = cos(phi) * rho_dot;   // cos(phi) = adj/hyp = vx / rho_dot
       double vy       = sin(phi) * rho_dot;   // sin(phi) = opp/hyp = vy / rho_dot
       
+      // If initial values are zero then increase uncertainty.
+      if (fabs(x) < 0.0001) {
+        ekf_.P_(0,0) = 1000;
+      }
+      
+      if (fabs(y) < 0.0001) {
+        ekf_.P_(1,1) = 1000;
+      }
+      
       ekf_.x_ << x, y, vx, vy;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
@@ -237,6 +246,16 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       double y  = lidar[1];
       double vx = 0;        // lidar measurements do not contain velocity
       double vy = 0;        // lidar measurements do not contain velocity
+      
+      // If initial values are zero then increase uncertainty.
+      if (fabs(x) < 0.0001) {
+        ekf_.P_(0,0) = 1000;
+      }
+      
+      if (fabs(y) < 0.0001) {
+        ekf_.P_(1,1) = 1000;
+      }
+      
       ekf_.x_ << x, y, vx, vy;
     }
 
@@ -254,26 +273,31 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;	//dt - expressed in seconds
   previous_timestamp_ = measurement_pack.timestamp_;
   
-  // Update the state transition matrix F according to the new elapsed time.
-  // Modify the F matrix so that the time is integrated
-  ekf_.F_(0, 2) = dt;
-  ekf_.F_(1, 3) = dt;
+  // Obscure: If dt is very small (i.e. two measurements are approximately coincident in time)
+  // we should not make a prediction as it can led to arithmetic problems.
   
-  // Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
-  float noise_ax = 9;
-  float noise_ay = 9;
-  
-  // Update the process noise covariance matrix Q.
-  float dt_2 = dt * dt;
-  float dt_3 = dt_2 * dt;
-  float dt_4 = dt_3 * dt;
-  
-  ekf_.Q_ <<  dt_4/4*noise_ax,    0,                dt_3/2*noise_ax,  0,
-              0,                  dt_4/4*noise_ay,  0,                dt_3/2*noise_ay,
-              dt_3/2*noise_ax,    0,                dt_2*noise_ax,    0,
-              0,                  dt_3/2*noise_ay,  0,                dt_2*noise_ay;
-  
-  ekf_.Predict();
+  if ( dt > 0.001 ) {
+    // Update the state transition matrix F according to the new elapsed time.
+    // Modify the F matrix so that the time is integrated
+    ekf_.F_(0, 2) = dt;
+    ekf_.F_(1, 3) = dt;
+    
+    // Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
+    float noise_ax = 9.0;
+    float noise_ay = 9.0;
+    
+    // Update the process noise covariance matrix Q.
+    float dt_2 = dt * dt;
+    float dt_3 = dt_2 * dt;
+    float dt_4 = dt_3 * dt;
+    
+    ekf_.Q_ <<  dt_4/4*noise_ax,    0,                dt_3/2*noise_ax,  0,
+                0,                  dt_4/4*noise_ay,  0,                dt_3/2*noise_ay,
+                dt_3/2*noise_ax,    0,                dt_2*noise_ax,    0,
+                0,                  dt_3/2*noise_ay,  0,                dt_2*noise_ay;
+    
+    ekf_.Predict();
+  }
 
   /*****************************************************************************
    *  Update
